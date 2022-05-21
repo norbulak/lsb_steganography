@@ -3,9 +3,10 @@
 Implementation of a command line **24 bbp** modern bitmap **steganography** tool through **LSB** encoding (rf. https://en.wikipedia.org/wiki/Steganography https://en.wikipedia.org/wiki/BMP). 
                                                          
 ## Install 
-
-make (make test for debug compilation) 
-
+```
+make
+make test # for debug compilation, with debug prints
+```
 ## usage
 ```
 Usage:
