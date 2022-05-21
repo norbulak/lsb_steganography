@@ -1,17 +1,19 @@
 #ifndef ENCODE_H
 #define ENCODE_H
 
-#include "types.h" // Contains user defined types
-
-/* Structure to store information required for
- * encoding secret file to source Image
- * Info about output and intermediate data is
- * also stored
- */
+#include "types.h"
 
 #define MAX_SECRET_BUF_SIZE 1
 #define MAX_IMAGE_BUF_SIZE (MAX_SECRET_BUF_SIZE * 8)
 #define MAX_FILE_SUFFIX 4
+#define DEFAULT_STEGO_FILE_NAME "./resources/stego_img.bmp"
+#define DEFAULT_STEGO_FILE_NAME_SIZE (26 * sizeof(char))
+
+// BMP offsets
+#define BMP_BITS_PER_PIXELS_OFFSET      0x1C    // 4 bytes
+#define BMP_WIDTH_IN_PIXELS_OFFSET      0x12    // 4 bytes
+#define BMP_HEIGHT_IN_PIXELS_OFFSET     0x14    // 2 bytes
+#define BMP_RAW_IMG_SIZE_OFFSET         0x22    // 4 bytes
 
 typedef struct _EncodeInfo
 {
@@ -35,9 +37,6 @@ typedef struct _EncodeInfo
 
 } EncodeInfo;
 
-
-/* Encoding function prototype */
-
 /* Check operation type */
 OperationType check_operation_type(char *argv[]);
 
@@ -48,7 +47,7 @@ Status read_and_validate_encode_args(char *argv[], EncodeInfo *encInfo);
 Status do_encoding(EncodeInfo *encInfo);
 
 /* Get File pointers for i/p and o/p files */
-Status open_files(EncodeInfo *encInfo);
+Status open_encoding_files(EncodeInfo *encInfo);
 
 /* check capacity */
 Status check_capacity(EncodeInfo *encInfo);
