@@ -5,7 +5,7 @@ Implementation of a command line **24 bbp** modern bitmap **steganography** tool
 ## Install 
 ```
 make
-make test # for debug compilation, with debug prints
+make test # for debug compilation, with debug logs
 ```
 ## usage
 ```
