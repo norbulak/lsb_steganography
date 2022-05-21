@@ -1,7 +1,7 @@
-# lsb_steganography
+# Stego
 
-Implementation of a command line 24 bbp modern bitmap steganography tool (rf. https://en.wikipedia.org/wiki/Steganography
-                                                                              https://en.wikipedia.org/wiki/BMP). 
+Implementation of a command line *24 bbp* modern bitmap steganography tool through LSB encoding (rf. https://en.wikipedia.org/wiki/Steganography
+                                                                                                 https://en.wikipedia.org/wiki/BMP). 
                                                          
 ## Install 
 
