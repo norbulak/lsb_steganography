@@ -14,7 +14,7 @@
 #define BMP_WIDTH_IN_PIXELS_OFFSET      0x12    // 4 bytes
 #define BMP_HEIGHT_IN_PIXELS_OFFSET     0x14    // 2 bytes
 #define BMP_RAW_IMG_SIZE_OFFSET         0x22    // 4 bytes
-
+#define BMP_PIXEL_ARRAY_START_OFFSET    0x0A    // 4 bytes
 typedef struct _EncodeInfo
 {
     /* Source Image info */
@@ -23,6 +23,7 @@ typedef struct _EncodeInfo
     uint image_capacity;
     uint bits_per_pixel;
     char image_data[MAX_IMAGE_BUF_SIZE];
+    uint pixel_array_begin;
 
     /* Secret File Info */
     char *secret_fname;

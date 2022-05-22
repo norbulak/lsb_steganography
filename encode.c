@@ -125,11 +125,26 @@ usage:
 Status do_encoding(EncodeInfo *encInfo)
 {
     printf("##Decoding Procedure Started##\n");
-    // Checking secret file size (Check if empty)
+
+    // check if 24bbp
+    INFO("Checking that the source bitmap is 24bbp\n");
+    fseek(encInfo->fptr_src_image, BMP_BITS_PER_PIXELS_OFFSET, SEEK_SET);
+    fread(&encInfo->bits_per_pixel, 2, 1, encInfo->fptr_src_image);
+    if (24 != encInfo->bits_per_pixel)
+    {
+        ERROR("%s is not a 24bbp bitmap", encInfo->src_image_fname);
+        return e_failure;
+    }
+    DEBUG("%d bbp\n", encInfo->bits_per_pixel);
+    INFO("BMP file is 24bbp\n");
+
+    // Checking secret if file size is empty
     INFO("Checking %s size\n", encInfo->secret_fname);
+    
     fseek(encInfo->fptr_secret, 0L, SEEK_END);
     encInfo->size_secret_file = ftell(encInfo->fptr_secret);
     rewind(encInfo->fptr_secret);
+
     if (0 == encInfo->size_secret_file)
     {
         ERROR("No data in secret file\n");
@@ -138,9 +153,17 @@ Status do_encoding(EncodeInfo *encInfo)
     DEBUG("Size of secret file is %ld\n", encInfo->size_secret_file);
     INFO("Done. Not empty\n")
 
-    // checking if enough space to write magic string+secret message in bmp
+    //checking if enough space to write magic string+secret message in bmp
     INFO("Checking for %s capacity to handle %s\n",
             encInfo->src_image_fname, encInfo->secret_fname);
+    
+    // getting number of pixels
+    fseek(encInfo->fptr_src_image, BMP_RAW_IMG_SIZE_OFFSET, SEEK_SET);
+    fread(&encInfo->image_capacity, 4, 1, encInfo->fptr_src_image);
+    DEBUG("image capacity = %d bytes\n", encInfo->image_capacity);
+
+    // Comparing the secret message's size with the capacity of the BMP
+    // capacity is equal to one byte per pixel for 24bbp BMPs
     if (MAGIC_STRING_SIZE+encInfo->size_secret_file > encInfo->image_capacity)
     {
         ERROR("%s is too small to contain %s\n", 
@@ -148,19 +171,12 @@ Status do_encoding(EncodeInfo *encInfo)
         return e_failure;
     }
     INFO("Done. Found OK\n");
-    fseek(encInfo->fptr_src_image, BMP_BITS_PER_PIXELS_OFFSET, SEEK_SET);
-    fread(&encInfo->bits_per_pixel, 2, 1, encInfo->fptr_src_image);
 
-    // seeking from current to optimize
-    fseek(encInfo->fptr_src_image, BMP_RAW_IMG_SIZE_OFFSET, SEEK_SET);
-
-    fread(&encInfo->image_capacity, 4, 1, encInfo->fptr_src_image);
-
-    DEBUG("image capacity = %d bytes\n", encInfo->image_capacity);
-    DEBUG("%d bbp\n", encInfo->bits_per_pixel);
-
-    // checking for bmp capacity to encode message 
-    // Copy image header (overhead before that doesn't change)
+    // getting starting offset of the bmp's pixel array
+    fseek(encInfo->fptr_src_image, BMP_PIXEL_ARRAY_START_OFFSET, SEEK_SET);
+    fread(&encInfo->pixel_array_begin, 4, 1, encInfo->fptr_src_image);
+    //Copy source file into new file until beginning of pixel ARRAY
+    INFO("Copying the file until %x\n", encInfo->pixel_array_begin);
          
     // Encoding MAGIC_STRING signature
     // Encoding Secret file extension
