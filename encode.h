@@ -3,7 +3,7 @@
 
 #include "types.h"
 
-#define MAX_SECRET_BUF_SIZE 1
+#define MAX_SECRET_BUF_SIZE 128
 #define MAX_IMAGE_BUF_SIZE (MAX_SECRET_BUF_SIZE * 8)
 #define MAX_FILE_SUFFIX 4
 #define DEFAULT_STEGO_FILE_NAME "./resources/stego_img.bmp"
@@ -21,6 +21,7 @@ typedef struct _EncodeInfo
     char *src_image_fname;
     FILE *fptr_src_image;
     uint image_capacity;
+    uint raw_image_size;
     uint bits_per_pixel;
     char image_data[MAX_IMAGE_BUF_SIZE];
     uint pixel_array_begin;

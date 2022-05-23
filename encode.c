@@ -159,7 +159,8 @@ Status do_encoding(EncodeInfo *encInfo)
     
     // getting number of pixels
     fseek(encInfo->fptr_src_image, BMP_RAW_IMG_SIZE_OFFSET, SEEK_SET);
-    fread(&encInfo->image_capacity, 4, 1, encInfo->fptr_src_image);
+    fread(&encInfo->raw_image_size, 4, 1, encInfo->fptr_src_image);
+    encInfo->image_capacity = encInfo->raw_image_size/4;
     DEBUG("image capacity = %d bytes\n", encInfo->image_capacity);
 
     // Comparing the secret message's size with the capacity of the BMP
@@ -172,13 +173,24 @@ Status do_encoding(EncodeInfo *encInfo)
     }
     INFO("Done. Found OK\n");
 
+    //Get secret message to encode
+    INFO("Getting secret message\n");
+    fread(encInfo->secret_data, encInfo->size_secret_file, 1, encInfo->fptr_secret);
+    INFO("Done.\n");
+    DEBUG("Secret message %s", encInfo->secret_data);
     // getting starting offset of the bmp's pixel array
     fseek(encInfo->fptr_src_image, BMP_PIXEL_ARRAY_START_OFFSET, SEEK_SET);
     fread(&encInfo->pixel_array_begin, 4, 1, encInfo->fptr_src_image);
     //Copy source file into new file until beginning of pixel ARRAY
     INFO("Copying the file until %x\n", encInfo->pixel_array_begin);
-         
+    rewind(encInfo->fptr_src_image);
+    fread(encInfo->image_data, encInfo->pixel_array_begin, 1, encInfo->fptr_src_image);
+    fwrite(encInfo->image_data, encInfo->pixel_array_begin, 1,encInfo->fptr_stego_image);
+    INFO("Done.\n")
+    //do replacement
+    //every 6 bytes put 1 byte of secret message
     // Encoding MAGIC_STRING signature
+
     // Encoding Secret file extension
     // Encoding Secret file Size
     // Encoding Secret data
