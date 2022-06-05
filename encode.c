@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include "debug.h"
 #include "encode.h"
 #include "types.h"
 #include "common.h"
@@ -76,7 +77,14 @@ Status open_encoding_files(EncodeInfo *encInfo)
     INFO("Done\n")
     return e_success;
 }
-
+Status close_encoding_files(EncodeInfo *encInfo)
+{
+    INFO("Closing files\n")
+    fclose(encInfo->fptr_src_image);
+    fclose(encInfo->fptr_secret);
+    fclose(encInfo->fptr_stego_image);
+    return e_success;
+}
 OperationType check_operation_type(char **argv)
 {
     if (NULL != argv[1])
@@ -111,8 +119,7 @@ Status read_and_validate_encode_args(char **argv, EncodeInfo *encInfo)
         INFO("Output File not mentioned. Creating %s as default\n",
                 DEFAULT_STEGO_FILE_NAME);
 
-        encInfo->stego_image_fname = malloc(DEFAULT_STEGO_FILE_NAME_SIZE);
-        strcpy(encInfo->stego_image_fname, DEFAULT_STEGO_FILE_NAME);
+        encInfo->stego_image_fname = (char *)DEFAULT_STEGO_FILE_NAME_SIZE;
     }
 
     return e_success;
@@ -122,53 +129,135 @@ usage:
     return e_failure;
 }
 
-Status do_encoding(EncodeInfo *encInfo)
+uint get_file_size(FILE *fptr)
 {
-    printf("##Decoding Procedure Started##\n");
-    // Checking secret file size (Check if empty)
-    INFO("Checking %s size\n", encInfo->secret_fname);
-    fseek(encInfo->fptr_secret, 0L, SEEK_END);
-    encInfo->size_secret_file = ftell(encInfo->fptr_secret);
-    rewind(encInfo->fptr_secret);
-    if (0 == encInfo->size_secret_file)
-    {
-        ERROR("No data in secret file\n");
-        return e_failure;
-    }
-    DEBUG("Size of secret file is %ld\n", encInfo->size_secret_file);
-    INFO("Done. Not empty\n")
+    uint size = 0;
+    fseek(fptr, 0L, SEEK_END);
+    size = ftell(fptr);
+    rewind(fptr);
+    return (size);
+}
+Status check_capacity(EncodeInfo *encInfo)
+{
+    // getting number of pixels
+    fseek(encInfo->fptr_src_image, BMP_RAW_IMG_SIZE_OFFSET, SEEK_SET);
+    fread(&encInfo->raw_image_size, 4, 1, encInfo->fptr_src_image);
+    encInfo->image_capacity = encInfo->raw_image_size/4;
+    DEBUG("image capacity = %d bytes\n", encInfo->image_capacity);
 
-    // checking if enough space to write magic string+secret message in bmp
-    INFO("Checking for %s capacity to handle %s\n",
-            encInfo->src_image_fname, encInfo->secret_fname);
-    if (MAGIC_STRING_SIZE+encInfo->size_secret_file > encInfo->image_capacity)
+    // Comparing the secret message's size with the capacity of the BMP
+    // capacity is equal to one byte per pixel for 24bbp BMPs
+    if (FILE_EXTENTION_SIZE + BYTES_OF_FILE_SIZE +
+    MAGIC_STRING_SIZE + encInfo->size_secret_file > encInfo->image_capacity)
     {
         ERROR("%s is too small to contain %s\n", 
                 encInfo->src_image_fname, encInfo->secret_fname);
         return e_failure;
     }
-    INFO("Done. Found OK\n");
+    return e_success;
+}
+
+Status check_bitmap_format(EncodeInfo *encInfo)
+{
+    INFO("Checking that the source bitmap is 24bbp\n");
     fseek(encInfo->fptr_src_image, BMP_BITS_PER_PIXELS_OFFSET, SEEK_SET);
     fread(&encInfo->bits_per_pixel, 2, 1, encInfo->fptr_src_image);
-
-    // seeking from current to optimize
-    fseek(encInfo->fptr_src_image, BMP_RAW_IMG_SIZE_OFFSET, SEEK_SET);
-
-    fread(&encInfo->image_capacity, 4, 1, encInfo->fptr_src_image);
-
-    DEBUG("image capacity = %d bytes\n", encInfo->image_capacity);
+    if (24 != encInfo->bits_per_pixel)
+    {
+        ERROR("%s is not a 24bbp bitmap\n", encInfo->src_image_fname);
+        return e_failure;
+    }
     DEBUG("%d bbp\n", encInfo->bits_per_pixel);
+    INFO("BMP file is 24bbp\n");
+    return e_success;
+}
 
-    // checking for bmp capacity to encode message 
-    // Copy image header (overhead before that doesn't change)
-         
-    // Encoding MAGIC_STRING signature
-    // Encoding Secret file extension
-    // Encoding Secret file Size
-    // Encoding Secret data
-    // Copying the data that's left on the original bmp (that doesn't change)
-    // Done
-    // get_image_size_for_bmp
+Status copy_bmp_header(EncodeInfo *encInfo)
+{
+    //Copy source file into new file until beginning of pixel ARRAY
+    INFO("Copying the file until 0x%x\n", encInfo->pixel_array_begin);
+    rewind(encInfo->fptr_src_image);
+    char tmp_data[encInfo->pixel_array_begin];
+    fread(tmp_data, encInfo->pixel_array_begin, 1, encInfo->fptr_src_image);
+    fwrite(tmp_data, encInfo->pixel_array_begin, 1,encInfo->fptr_stego_image);
+    INFO("Done.\n")
+    return e_success;
+}
+
+
+Status do_encoding(EncodeInfo *encInfo)
+{
+    INFO("## Encoding started\n")
+    // check if 24bbp
+    if (e_failure == check_bitmap_format(encInfo))
+        return e_failure;
+
+    // Checking secret if file is empty
+    INFO("Checking %s size\n", encInfo->secret_fname);
+    encInfo->size_secret_file = get_file_size(encInfo->fptr_secret);
+    if (0 == encInfo->size_secret_file)
+    {
+        ERROR("No data in secret file\n");
+        return e_failure;
+    }
+    INFO("Done. Not empty\n")
+
+    //checking image capacity 
+    INFO("Checking image capacity...");
+    if (e_failure == check_capacity(encInfo))
+        return e_failure;
+    INFO("Done. Sufficient !\n");
+
+    //Get secret message to encode
+    INFO("Getting secret message\n");
+    fread(encInfo->secret_data, encInfo->size_secret_file, 1, encInfo->fptr_secret);
+    INFO("Done.\n");
+
+    // getting starting offset of the bmp's pixel array
+    fseek(encInfo->fptr_src_image, BMP_PIXEL_ARRAY_START_OFFSET, SEEK_SET);
+    fread(&encInfo->pixel_array_begin, 4, 1, encInfo->fptr_src_image);
+
+    // Copy bmp header
+    if (e_failure == copy_bmp_header(encInfo))
+        return e_failure;
+
+    // Load image to memory
+    fseek(encInfo->fptr_src_image, encInfo->pixel_array_begin, SEEK_SET); 
+    char *tmp_buffer = malloc(encInfo->raw_image_size);
+    fread(tmp_buffer, encInfo->raw_image_size , 1, encInfo->fptr_src_image);
+
+    // encode MAGIC_STRING
+    int j = 0;
+    INFO("Encoding Magic String...\n");
+    for(int i = 0; i < MAGIC_STRING_SIZE; ++i)
+    {
+        tmp_buffer[j] = MAGIC_STRING[i];
+        tmp_buffer[j+1] = MAGIC_STRING[++i];
+        j+=8;
+    }
+    INFO("Done\n");
+    // Encoding secret file size on 4 bytes
+    for(int i = 0; i < BYTES_OF_FILE_SIZE;++i)
+    {
+        //TODO
+    }
+    // Encoding secret file extension(to know type when decoding)
+    for(int i = 0; i < FILE_EXTENTION_SIZE;++i)
+    {
+        //TODO
+    }
+    INFO("Encoding Secret Data...\n");
+    for(int i = 0; i < encInfo->size_secret_file + MAGIC_STRING_SIZE; ++i)
+    {
+        tmp_buffer[j] = encInfo->secret_data[i];
+        tmp_buffer[j+1] = encInfo->secret_data[++i];
+        j+=8;
+    }
+    INFO("Data Encoded\n")
+    INFO("Writing encoded DATA to file...\n");
+    fwrite(tmp_buffer, encInfo->raw_image_size , 1, encInfo->fptr_stego_image);
+    INFO("Done\n")
+    free(tmp_buffer);
     uint img_size = get_image_size_for_bmp(encInfo->fptr_src_image);
     printf("INFO: Image size = %u\n", img_size);
 

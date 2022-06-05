@@ -19,10 +19,12 @@ int main(int argc, char *argv[])
                 return e_failure;
             }
                 do_encoding(&encInfo);
+                close_encoding_files(&encInfo);
             break;
         case e_decode:
-            //            if(e_success == read_and_validate_decode_args(char **argv, EncodeInfo *encInfo)
+            //            if(e_success == read_and_validate_decode_args(char **argv, DecodeInfo *decInfo)
             //              do_decoding
+            //              close_decoding_file(&decInfo)
             break;
         default:
             return -1;
