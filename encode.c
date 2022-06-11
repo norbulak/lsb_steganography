@@ -1,10 +1,7 @@
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
-#include "debug.h"
 #include "encode.h"
-#include "types.h"
 #include "common.h"
+#include <stdlib.h>
+#include <string.h>
 /* Function Definitions */
 
 /* Get image size
@@ -95,17 +92,30 @@ OperationType check_operation_type(char **argv)
             return e_decode;
     }
     printf("Usage:\n"
-           "stego: Encoding: stego -e <.bmp file> <.txt file> [output file]\n"
-           "stego: Decoding: stego -d <.bmp file> <.txt file> [output file]\n");
+           "stego: Encoding: stego -e <.bmp file> <secret file> [output file]\n"
+           "stego: Decoding: stego -d <.bmp file> <secret file> [output file]\n");
     return e_unsupported;
+}
+
+void get_secret_extention(EncodeInfo *encInfo)
+{
+    DEBUG("secret_fname= %s\n", encInfo->secret_fname);
+    for (int i = 0; i < strlen(encInfo->secret_fname); ++i)
+    {
+        if (encInfo->secret_fname[i] == '.')
+        {
+            strcpy(encInfo->extn_secret_file, encInfo->secret_fname + i + 1);
+            return;
+        }
+    }
+    strcpy(encInfo->extn_secret_file, DEFAULT_EXT);
 }
 
 Status read_and_validate_encode_args(char **argv, EncodeInfo *encInfo)
 {
     // check if options are provided properly
     if (NULL == argv[2] || NULL == argv[3]
-    || strcmp(".bmp", (argv[2] + strlen(argv[2]) - 4)) != 0
-    || strcmp(".txt", (argv[3] + strlen(argv[3]) - 4)) != 0)
+    || strcmp(".bmp", (argv[2] + strlen(argv[2]) - 4)) != 0)
         goto usage;
 
     // save bitmap & secret_fname file name to encodeInfo 
@@ -119,7 +129,7 @@ Status read_and_validate_encode_args(char **argv, EncodeInfo *encInfo)
         INFO("Output File not mentioned. Creating %s as default\n",
                 DEFAULT_STEGO_FILE_NAME);
 
-        encInfo->stego_image_fname = (char *)DEFAULT_STEGO_FILE_NAME_SIZE;
+        encInfo->stego_image_fname = (char *)DEFAULT_STEGO_FILE_NAME;
     }
 
     return e_success;
@@ -208,6 +218,8 @@ Status do_encoding(EncodeInfo *encInfo)
         return e_failure;
     INFO("Done. Sufficient !\n");
 
+    //Getting secret file extention
+    get_secret_extention(encInfo);
     //Get secret message to encode
     INFO("Getting secret message\n");
     fread(encInfo->secret_data, encInfo->size_secret_file, 1, encInfo->fptr_secret);
@@ -227,7 +239,7 @@ Status do_encoding(EncodeInfo *encInfo)
     fread(tmp_buffer, encInfo->raw_image_size , 1, encInfo->fptr_src_image);
 
     // encode MAGIC_STRING
-    int j = 0;
+    int j = 7;
     INFO("Encoding Magic String...\n");
     for(int i = 0; i < MAGIC_STRING_SIZE; ++i)
     {
@@ -239,12 +251,16 @@ Status do_encoding(EncodeInfo *encInfo)
     // Encoding secret file size on 4 bytes
     for(int i = 0; i < BYTES_OF_FILE_SIZE;++i)
     {
-        //TODO
+        tmp_buffer[j] = (encInfo->size_secret_file >> (i*8)) & 0xff ;
+        tmp_buffer[j+1] = (encInfo->size_secret_file >> (++i)*8) & 0xff;
+        j+=8;
     }
     // Encoding secret file extension(to know type when decoding)
     for(int i = 0; i < FILE_EXTENTION_SIZE;++i)
     {
-        //TODO
+        tmp_buffer[j] = encInfo->extn_secret_file[i];
+        tmp_buffer[j+1] = encInfo->extn_secret_file [++i];
+        j+=8;
     }
     INFO("Encoding Secret Data...\n");
     for(int i = 0; i < encInfo->size_secret_file + MAGIC_STRING_SIZE; ++i)
