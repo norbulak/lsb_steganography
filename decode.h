@@ -3,8 +3,9 @@
 
 #include "common.h"
 #include "types.h"
-
+#include <stdlib.h>
 #define DEFAULT_SECRET_FILE_NAME "output."
+#define DEFAULT_SECRET_FILE_NAME_LENGTH 12
 
 typedef struct _DecodeInfo
 {
@@ -16,10 +17,9 @@ typedef struct _DecodeInfo
     
     /*secret file Info */
     char *secret_fname;
+    char extn_secret_file[FILE_EXTENTION_SIZE];
     FILE *fptr_secret_file;
-    char extn_secret_file[MAX_FILE_SUFFIX];
     uint secret_file_size;
-
 } DecodeInfo;
 
 /* read and validate decoding arguments */
@@ -31,4 +31,5 @@ Status decode_secret_extn(DecodeInfo *decInfo);
 
 /* do decoding */
 Status do_decoding(DecodeInfo *decInfo);
+
 #endif

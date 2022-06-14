@@ -1,5 +1,7 @@
 #include <stdio.h>
+#include "debug.h"
 #include "encode.h"
+#include "decode.h"
 #include "types.h"
 #include "common.h"
 int main(int argc, char *argv[])
@@ -18,12 +20,14 @@ int main(int argc, char *argv[])
                 ERROR("Opening Files Failed\n");
                 return e_failure;
             }
-                do_encoding(&encInfo);
-                close_encoding_files(&encInfo);
+            do_encoding(&encInfo);
+            close_encoding_files(&encInfo);
             break;
         case e_decode:
-            //            if(e_success == read_and_validate_decode_args(char **argv, DecodeInfo *decInfo)
-            //              do_decoding
+            DecodeInfo decInfo;
+            if(e_failure == read_and_validate_decode_args(argv, &decInfo))
+                    ERROR("Invalid Arguments\n");
+                    do_decoding(&decInfo);
             //              close_decoding_file(&decInfo)
             break;
         default:

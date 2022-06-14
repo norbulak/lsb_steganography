@@ -6,12 +6,11 @@
 #include "debug.h"
 #include "types.h"
 // Secret file suffix max size
-#define MAX_FILE_SUFFIX 4
 #define DEFAULT_EXT     "txt"
 // Magic string to identify whether stegged or not
 #define MAGIC_STRING "#*"
 #define MAGIC_STRING_SIZE 2
-#define PRINT(t, fmt, ...)\
+# define PRINT(t, fmt, ...)\
     do {\
             if (t == DEBUG_PRINT) \
             {\
@@ -19,10 +18,9 @@
                                 __LINE__, __func__, __VA_ARGS__);\
        } while (0)
 
-#endif
+# endif
 #define BYTES_OF_FILE_SIZE              4
 #define FILE_EXTENTION_SIZE             4  
-#define MAX_FILE_SUFFIX                 4
 
 // BMP offsets
 #define BMP_BITS_PER_PIXELS_OFFSET      0x1C    // 4 bytes
