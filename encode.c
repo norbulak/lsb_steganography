@@ -189,8 +189,8 @@ Status copy_bmp_header(EncodeInfo *encInfo)
     rewind(encInfo->fptr_src_image);
     char tmp_data[encInfo->pixel_array_begin];
     fread(tmp_data, encInfo->pixel_array_begin, 1, encInfo->fptr_src_image);
-    DEBUG("Created the buffer = %x\n", encInfo->pixel_array_begin);
     fwrite(&tmp_data, encInfo->pixel_array_begin, 1, encInfo->fptr_stego_image);
+    DEBUG("Created the buffer = %x\n", encInfo->pixel_array_begin);
     INFO("Done.\n")
     return e_success;
 }
@@ -221,7 +221,7 @@ Status do_encoding(EncodeInfo *encInfo)
     INFO("Done. Sufficient !\n");
 
     //Getting secret file extention
-    //get_secret_extention(encInfo);
+    get_secret_extention(encInfo);
     //Get secret message to encode
     INFO("Getting secret message\n");
     fread(encInfo->secret_data, encInfo->size_secret_file, 1, encInfo->fptr_secret);
@@ -259,7 +259,6 @@ Status do_encoding(EncodeInfo *encInfo)
         DEBUG("tmp_buffer[j+1] = 0x%hhx\n", tmp_buffer[j+1]);
         j+=8;
     }
-    encInfo->size_secret_file = 0xcb;
     // Encoding secret file extension(to know type when decoding)
     for(int i = 0; i < FILE_EXTENTION_SIZE;++i)
     {
