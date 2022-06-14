@@ -1,5 +1,6 @@
 #include "encode.h"
 #include "common.h"
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 /* Function Definitions */
@@ -91,9 +92,9 @@ OperationType check_operation_type(char **argv)
         else if (strcmp(argv[1], "-d") == 0)
             return e_decode;
     }
-    printf("Usage:\n"
-           "stego: Encoding: stego -e <.bmp file> <secret file> [output file]\n"
-           "stego: Decoding: stego -d <.bmp file> <secret file> [output file]\n");
+    INFO("Usage:\n"
+           "Encoding: stego -e <.bmp file> <secret file> [output file]\n"
+           "Decoding: stego -d <.bmp file> <secret file> [output file]\n");
     return e_unsupported;
 }
 
@@ -177,7 +178,6 @@ Status check_bitmap_format(EncodeInfo *encInfo)
         ERROR("%s is not a 24bbp bitmap\n", encInfo->src_image_fname);
         return e_failure;
     }
-    DEBUG("%d bbp\n", encInfo->bits_per_pixel);
     INFO("BMP file is 24bbp\n");
     return e_success;
 }
@@ -189,7 +189,8 @@ Status copy_bmp_header(EncodeInfo *encInfo)
     rewind(encInfo->fptr_src_image);
     char tmp_data[encInfo->pixel_array_begin];
     fread(tmp_data, encInfo->pixel_array_begin, 1, encInfo->fptr_src_image);
-    fwrite(tmp_data, encInfo->pixel_array_begin, 1,encInfo->fptr_stego_image);
+    fwrite(&tmp_data, encInfo->pixel_array_begin, 1, encInfo->fptr_stego_image);
+    DEBUG("Created the buffer = %x\n", encInfo->pixel_array_begin);
     INFO("Done.\n")
     return e_success;
 }
@@ -205,6 +206,7 @@ Status do_encoding(EncodeInfo *encInfo)
     // Checking secret if file is empty
     INFO("Checking %s size\n", encInfo->secret_fname);
     encInfo->size_secret_file = get_file_size(encInfo->fptr_secret);
+    DEBUG("Secret file size = %ld Bytes\n", encInfo->size_secret_file);
     if (0 == encInfo->size_secret_file)
     {
         ERROR("No data in secret file\n");
@@ -213,7 +215,7 @@ Status do_encoding(EncodeInfo *encInfo)
     INFO("Done. Not empty\n")
 
     //checking image capacity 
-    INFO("Checking image capacity...");
+    INFO("Checking image capacity...\n");
     if (e_failure == check_capacity(encInfo))
         return e_failure;
     INFO("Done. Sufficient !\n");
@@ -249,10 +251,12 @@ Status do_encoding(EncodeInfo *encInfo)
     }
     INFO("Done\n");
     // Encoding secret file size on 4 bytes
-    for(int i = 0; i < BYTES_OF_FILE_SIZE;++i)
+    for(int i = BYTES_OF_FILE_SIZE; i > 0;)
     {
-        tmp_buffer[j] = (encInfo->size_secret_file >> (i*8)) & 0xff ;
-        tmp_buffer[j+1] = (encInfo->size_secret_file >> (++i)*8) & 0xff;
+        tmp_buffer[j] = (encInfo->size_secret_file >> (--i)*8) & 0xff;
+        DEBUG("tmp_buffer[j] = 0x%hhx\n", tmp_buffer[j]);
+        tmp_buffer[j+1] = (encInfo->size_secret_file >> (--i)*8) & 0xff;
+        DEBUG("tmp_buffer[j+1] = 0x%hhx\n", tmp_buffer[j+1]);
         j+=8;
     }
     // Encoding secret file extension(to know type when decoding)

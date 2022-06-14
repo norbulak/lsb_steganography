@@ -21,7 +21,7 @@ typedef struct _EncodeInfo
     /* Secret File Info */
     char *secret_fname;
     FILE *fptr_secret;
-    char extn_secret_file[MAX_FILE_SUFFIX];
+    char extn_secret_file[FILE_EXTENTION_SIZE];
     char secret_data[MAX_SECRET_BUF_SIZE];
     long size_secret_file;
 
