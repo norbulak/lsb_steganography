@@ -1,6 +1,6 @@
 CC=gcc
-CFLAGS=
-DBFLAGS=-O0 -DDBG -g -ggdb3
+CFLAGS=-DDBUG=0
+DBFLAGS=-O0 -DDBUG=1 -g -ggdb3
 SRC= main.c\
 	 encode.c\
 	 decode.c
@@ -8,9 +8,9 @@ SRC= main.c\
 MKD=mkdir -p 
 BUILD_DIR=Release
 DEBUG_DIR=Debug
-TEST_BMP=Resources/beautiful.bmp
-TEST_SECRET=Resources/notre.jpg
-TEST_OUTPUT=$(DEBUG_DIR)/test.bmp
+TEST_BMP=Resources/yet_another.bmp
+TEST_SECRET=Resources/secret.jpg
+TEST_OUTPUT=$(BUILD_DIR)/test.bmp
 IMAGE_VIEWER=viewnior
 BIN=stego
 
@@ -21,8 +21,24 @@ debug:
 	$(MKD) $(DEBUG_DIR)
 	$(CC) $(SRC) -o $(DEBUG_DIR)/$(BIN) $(CFLAGS) $(DBFLAGS)
 test:debug
-	valgrind ./$(DEBUG_DIR)/$(BIN) -e $(TEST_BMP) $(TEST_SECRET) $(TEST_OUTPUT) 
-	./$(DEBUG_DIR)/$(BIN) -d $(TEST_OUTPUT) test.jpg
-	$(IMAGE_VIEWER) test.jpg
+	@echo "###################################################################"
+	@echo "TESTING ENCODING"
+	@echo "###################################################################"
+	./$(DEBUG_DIR)/$(BIN) -e $(TEST_BMP) $(TEST_SECRET) $(TEST_OUTPUT) 
+	@echo "###################################################################"
+	@echo "TESTING DECODING"
+	@echo "###################################################################"
+	./$(DEBUG_DIR)/$(BIN) -d $(TEST_OUTPUT)
+	$(IMAGE_VIEWER) $(TEST_OUTPUT)
+test_release:all
+	@echo "###################################################################"
+	@echo "TESTING ENCODING"
+	@echo "###################################################################"
+	./$(BUILD_DIR)/$(BIN) -e $(TEST_BMP) $(TEST_SECRET) $(TEST_OUTPUT) 
+	@echo "###################################################################"
+	@echo "TESTING DECODING"
+	@echo "###################################################################"
+	./$(BUILD_DIR)/$(BIN) -d $(TEST_OUTPUT) 
+	$(IMAGE_VIEWER) output.jpg
 clean:
-	rm -fr $(DEBUG_DIR) $(BUILD_DIR)
+	rm -fr $(DEBUG_DIR) $(BUILD_DIR) output.*

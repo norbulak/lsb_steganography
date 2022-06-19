@@ -2,6 +2,7 @@
 #define DECODE_H
 
 #include "common.h"
+#include "encode.h"
 #include "types.h"
 #include <stdlib.h>
 #define DEFAULT_SECRET_FILE_NAME "output."
@@ -31,5 +32,9 @@ Status decode_secret_extn(DecodeInfo *decInfo);
 
 /* do decoding */
 Status do_decoding(DecodeInfo *decInfo);
+
+/* lsb decode */
+
+Status lsb_decode(char *buffer, char *byte);
 
 #endif

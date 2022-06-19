@@ -5,6 +5,7 @@
 #include <string.h>
 #include "debug.h"
 #include "types.h"
+#include <stdbool.h>
 // Secret file suffix max size
 #define DEFAULT_EXT     "txt"
 // Magic string to identify whether stegged or not

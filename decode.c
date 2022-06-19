@@ -21,12 +21,25 @@ usage:
             , argv[0], argv[0]);
     return e_failure;
 }
-
+Status lsb_decode(char *buffer, char *byte)
+{
+    *byte = 0;
+    unsigned char mask = 0x80;
+    for (int i = 0; i < 8; ++i)
+    {
+        if (buffer[i] & 1)
+            *byte |= mask;
+        else
+            *byte &= ~mask;
+        mask >>= 1;
+    }
+    DEBUG("Byte = %x\n", *byte);
+    return e_success;
+}
 Status do_decoding(DecodeInfo *decInfo)
 {
     // get pixel array start
     INFO("## Decoding Started...\n");
-    DEBUG("strlen%s\n", decInfo->extn_secret_file);
     //open bitmap 
     decInfo->fptr_src_image = fopen(decInfo->src_image_fname, "r");
     INFO("Opened %s\n", decInfo->src_image_fname);
@@ -51,13 +64,15 @@ Status do_decoding(DecodeInfo *decInfo)
     fread(tmp_buffer, decInfo->raw_image_size , 1, decInfo->fptr_src_image);
 
     //check if magic string is present
-    int j = 7;
+    int j = 0;
     for(int i = 0; i < MAGIC_STRING_SIZE; ++i)
     {
-        if (tmp_buffer[j] != MAGIC_STRING[i]
-          ||tmp_buffer[j+1] != MAGIC_STRING[++i]) 
+        char magic_string_byte = 0;
+        lsb_decode(&tmp_buffer[j], &magic_string_byte);
+        DEBUG("Magic string byte  = %c\n", magic_string_byte);
+        if (magic_string_byte != MAGIC_STRING[i])
         {
-            ERROR("Magic string not present\n");
+            ERROR("Magic string not present : %hhx\n", magic_string_byte);
             return e_failure;
         }
         j+=8;
@@ -68,21 +83,17 @@ Status do_decoding(DecodeInfo *decInfo)
     decInfo->secret_file_size = 0;
     for (int i = 0; i < BYTES_OF_FILE_SIZE; ++i)
     {
-        decInfo->secret_file_size <<= 8;
-        decInfo->secret_file_size |= tmp_buffer[j] & 0xff;
-        decInfo->secret_file_size <<= 8;
-        decInfo->secret_file_size |= tmp_buffer[j+1] & 0xff;
-        ++i;
+        if (i > 0)
+            decInfo->secret_file_size <<=8;
+        lsb_decode(&tmp_buffer[j], &decInfo->secret_file_size);
         j+=8;
     }
+    DEBUG("secret file size = %d\n", decInfo->secret_file_size);
 
     // get secret file extention
     for(int i = 0; i < FILE_EXTENTION_SIZE;++i)
     {
-        decInfo->extn_secret_file[i]  = tmp_buffer[j];
-        DEBUG("File extention byte = %c\n", tmp_buffer[j]);
-        decInfo->extn_secret_file[++i]  = tmp_buffer[j+1];
-        DEBUG("File extention byte = %c\n", tmp_buffer[j+1]);
+        lsb_decode(&tmp_buffer[j], &decInfo->extn_secret_file[i]);
         j+=8;
     }
     DEBUG("decInfo->extn_secret_file = %s\n", decInfo->extn_secret_file);
@@ -111,8 +122,7 @@ Status do_decoding(DecodeInfo *decInfo)
     char secret_data[decInfo->secret_file_size];
     for (int i = 0; i < decInfo->secret_file_size; ++i)
     {
-        secret_data[i] = tmp_buffer[j];
-        secret_data[++i] = tmp_buffer[j+1];
+        lsb_decode(&tmp_buffer[j], &secret_data[i]);
         j+=8;
     }
     DEBUG("Secret data = %s\n", secret_data);

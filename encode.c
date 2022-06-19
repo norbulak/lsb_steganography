@@ -1,5 +1,6 @@
 #include "encode.h"
 #include "common.h"
+#include "debug.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -101,15 +102,11 @@ OperationType check_operation_type(char **argv)
 void get_secret_extention(EncodeInfo *encInfo)
 {
     DEBUG("secret_fname= %s\n", encInfo->secret_fname);
-    for (int i = 0; i < strlen(encInfo->secret_fname); ++i)
-    {
-        if (encInfo->secret_fname[i] == '.')
-        {
-            strcpy(encInfo->extn_secret_file, encInfo->secret_fname + i + 1);
-            return;
-        }
-    }
-    strcpy(encInfo->extn_secret_file, DEFAULT_EXT);
+    strtok(encInfo->secret_fname, ".");
+    char *token = strtok(NULL, ".");
+    strcpy(encInfo->extn_secret_file, token);
+    DEBUG("Token = %s\n", encInfo->extn_secret_file);
+    return;
 }
 
 Status read_and_validate_encode_args(char **argv, EncodeInfo *encInfo)
@@ -153,7 +150,8 @@ Status check_capacity(EncodeInfo *encInfo)
     // getting number of pixels
     fseek(encInfo->fptr_src_image, BMP_RAW_IMG_SIZE_OFFSET, SEEK_SET);
     fread(&encInfo->raw_image_size, 4, 1, encInfo->fptr_src_image);
-    encInfo->image_capacity = encInfo->raw_image_size/4;
+    DEBUG("Raw image size = %d\n", encInfo->raw_image_size);
+    encInfo->image_capacity = encInfo->raw_image_size/8;
     DEBUG("image capacity = %d bytes\n", encInfo->image_capacity);
 
     // Comparing the secret message's size with the capacity of the BMP
@@ -195,7 +193,22 @@ Status copy_bmp_header(EncodeInfo *encInfo)
     return e_success;
 }
 
+Status lsb_encode(char *buffer, char byte)
+{
+    unsigned char mask = 0x80;
+    bool lsb = 0;
+    for (int i = 0; i < 8; ++i)
+    {
+        lsb = byte & mask;
+        if (lsb)
+            buffer[i] |= (unsigned char)1;
+        else
+            buffer[i] &= (unsigned char)~1;
+        mask >>=1;
+    }
 
+    return e_success;
+}
 Status do_encoding(EncodeInfo *encInfo)
 {
     INFO("## Encoding started\n")
@@ -224,6 +237,7 @@ Status do_encoding(EncodeInfo *encInfo)
     get_secret_extention(encInfo);
     //Get secret message to encode
     INFO("Getting secret message\n");
+    encInfo->secret_data = malloc(sizeof(char) * encInfo->size_secret_file);
     fread(encInfo->secret_data, encInfo->size_secret_file, 1, encInfo->fptr_secret);
     INFO("Done.\n");
 
@@ -241,36 +255,32 @@ Status do_encoding(EncodeInfo *encInfo)
     fread(tmp_buffer, encInfo->raw_image_size , 1, encInfo->fptr_src_image);
 
     // encode MAGIC_STRING
-    int j = 7;
+    int j = 0;
     INFO("Encoding Magic String...\n");
+
     for(int i = 0; i < MAGIC_STRING_SIZE; ++i)
     {
-        tmp_buffer[j] = MAGIC_STRING[i];
-        tmp_buffer[j+1] = MAGIC_STRING[++i];
+        lsb_encode(&tmp_buffer[j], MAGIC_STRING[i]);
         j+=8;
     }
+
     INFO("Done\n");
     // Encoding secret file size on 4 bytes
     for(int i = BYTES_OF_FILE_SIZE; i > 0;)
     {
-        tmp_buffer[j] = (encInfo->size_secret_file >> (--i)*8) & 0xff;
-        DEBUG("tmp_buffer[j] = 0x%hhx\n", tmp_buffer[j]);
-        tmp_buffer[j+1] = (encInfo->size_secret_file >> (--i)*8) & 0xff;
-        DEBUG("tmp_buffer[j+1] = 0x%hhx\n", tmp_buffer[j+1]);
+        lsb_encode(&tmp_buffer[j], (encInfo->size_secret_file >> (--i)*8) & 0xff);
         j+=8;
     }
     // Encoding secret file extension(to know type when decoding)
     for(int i = 0; i < FILE_EXTENTION_SIZE;++i)
     {
-        tmp_buffer[j] = encInfo->extn_secret_file[i];
-        tmp_buffer[j+1] = encInfo->extn_secret_file [++i];
+        lsb_encode(&tmp_buffer[j], encInfo->extn_secret_file[i]);
         j+=8;
     }
     INFO("Encoding Secret Data...\n");
-    for(int i = 0; i < encInfo->size_secret_file + MAGIC_STRING_SIZE; ++i)
+    for(int i = 0; i < encInfo->size_secret_file  ; ++i)
     {
-        tmp_buffer[j] = encInfo->secret_data[i];
-        tmp_buffer[j+1] = encInfo->secret_data[++i];
+        lsb_encode(&tmp_buffer[j], encInfo->secret_data[i]);
         j+=8;
     }
     INFO("Data Encoded\n")
