@@ -4,7 +4,6 @@
 #include "types.h"
 #include "common.h"
 
-#define MAX_SECRET_BUF_SIZE 512
 #define DEFAULT_STEGO_FILE_NAME "stego.bmp"
 
 
@@ -22,7 +21,7 @@ typedef struct _EncodeInfo
     char *secret_fname;
     FILE *fptr_secret;
     char extn_secret_file[FILE_EXTENTION_SIZE];
-    char secret_data[MAX_SECRET_BUF_SIZE];
+    char *secret_data;
     long size_secret_file;
 
     /* Stego Image Info */
@@ -63,5 +62,8 @@ Status encode_secret_file_size(long file_size, EncodeInfo *encInfo);
 
 /* Encode secret file data*/
 Status encode_secret_file_data(EncodeInfo *encInfo);
+
+/* write to lsb */
+Status lsb_encode(char *buffer, char byte);
 
 #endif
