@@ -155,7 +155,7 @@ Status check_capacity(EncodeInfo *encInfo)
     DEBUG("image capacity = %d bytes\n", encInfo->image_capacity);
 
     // Comparing the secret message's size with the capacity of the BMP
-    // capacity is equal to one byte per pixel for 24bbp BMPs
+    // capacity is equal to one byte per pixel for BMPs
     if (FILE_EXTENTION_SIZE + BYTES_OF_FILE_SIZE +
     MAGIC_STRING_SIZE + encInfo->size_secret_file > encInfo->image_capacity)
     {
@@ -166,19 +166,6 @@ Status check_capacity(EncodeInfo *encInfo)
     return e_success;
 }
 
-Status check_bitmap_format(EncodeInfo *encInfo)
-{
-    INFO("Checking that the source bitmap is 24bbp\n");
-    fseek(encInfo->fptr_src_image, BMP_BITS_PER_PIXELS_OFFSET, SEEK_SET);
-    fread(&encInfo->bits_per_pixel, 2, 1, encInfo->fptr_src_image);
-    if (24 != encInfo->bits_per_pixel)
-    {
-        ERROR("%s is not a 24bbp bitmap\n", encInfo->src_image_fname);
-        return e_failure;
-    }
-    INFO("BMP file is 24bbp\n");
-    return e_success;
-}
 
 Status copy_bmp_header(EncodeInfo *encInfo)
 {
@@ -212,10 +199,6 @@ Status lsb_encode(char *buffer, char byte)
 Status do_encoding(EncodeInfo *encInfo)
 {
     INFO("## Encoding started\n")
-    // check if 24bbp
-    if (e_failure == check_bitmap_format(encInfo))
-        return e_failure;
-
     // Checking secret if file is empty
     INFO("Checking %s size\n", encInfo->secret_fname);
     encInfo->size_secret_file = get_file_size(encInfo->fptr_secret);
