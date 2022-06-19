@@ -33,7 +33,6 @@ Status lsb_decode(char *buffer, char *byte)
             *byte &= ~mask;
         mask >>= 1;
     }
-    DEBUG("Byte = %x\n", *byte);
     return e_success;
 }
 Status do_decoding(DecodeInfo *decInfo)
@@ -69,7 +68,6 @@ Status do_decoding(DecodeInfo *decInfo)
     {
         char magic_string_byte = 0;
         lsb_decode(&tmp_buffer[j], &magic_string_byte);
-        DEBUG("Magic string byte  = %c\n", magic_string_byte);
         if (magic_string_byte != MAGIC_STRING[i])
         {
             ERROR("Magic string not present : %hhx\n", magic_string_byte);
@@ -85,21 +83,17 @@ Status do_decoding(DecodeInfo *decInfo)
     {
         if (i > 0)
             decInfo->secret_file_size <<=8;
-        lsb_decode(&tmp_buffer[j], &decInfo->secret_file_size);
+        lsb_decode(&tmp_buffer[j], (unsigned char *)&decInfo->secret_file_size);
         j+=8;
     }
-    DEBUG("secret file size = %d\n", decInfo->secret_file_size);
-
     // get secret file extention
     for(int i = 0; i < FILE_EXTENTION_SIZE;++i)
     {
         lsb_decode(&tmp_buffer[j], &decInfo->extn_secret_file[i]);
         j+=8;
     }
-    DEBUG("decInfo->extn_secret_file = %s\n", decInfo->extn_secret_file);
 
     // create and open output file.
-    DEBUG("secret_fname = %s\n",decInfo->secret_fname);
     if (NULL == decInfo->secret_fname)
     {
         decInfo->secret_fname = malloc(DEFAULT_SECRET_FILE_NAME_LENGTH * sizeof(char));
@@ -125,7 +119,6 @@ Status do_decoding(DecodeInfo *decInfo)
         lsb_decode(&tmp_buffer[j], &secret_data[i]);
         j+=8;
     }
-    DEBUG("Secret data = %s\n", secret_data);
 
     // write secret data to file
     fwrite(secret_data, decInfo->secret_file_size, 1, decInfo->fptr_secret_file);
