@@ -19,7 +19,7 @@ all:
 	$(CC) $(SRC) -o ./$(BUILD_DIR)/$(BIN) $(CFLAGS)
 debug:
 	$(MKD) $(DEBUG_DIR)
-	$(CC) $(SRC) -o $(DEBUG_DIR)/$(BIN) $(CFLAGS) $(DBFLAGS)
+	$(CC) $(SRC) -o $(DEBUG_DIR)/$(BIN) $(DBFLAGS)
 test:debug
 	@echo "###################################################################"
 	@echo "TESTING ENCODING"
