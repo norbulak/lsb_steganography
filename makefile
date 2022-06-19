@@ -10,7 +10,7 @@ BUILD_DIR=Release
 DEBUG_DIR=Debug
 TEST_BMP=Resources/yet_another.bmp
 TEST_SECRET=Resources/secret.jpg
-TEST_OUTPUT=$(BUILD_DIR)/test.bmp
+TEST_OUTPUT=test.bmp
 IMAGE_VIEWER=viewnior
 BIN=stego
 
@@ -29,8 +29,8 @@ test:debug
 	@echo "TESTING DECODING"
 	@echo "###################################################################"
 	./$(DEBUG_DIR)/$(BIN) -d $(TEST_OUTPUT)
-	$(IMAGE_VIEWER) $(TEST_OUTPUT)
 test_release:all
+	@echo "####################HIDING JPEG INSIDE BMP#########################"
 	@echo "###################################################################"
 	@echo "TESTING ENCODING"
 	@echo "###################################################################"
@@ -41,4 +41,4 @@ test_release:all
 	./$(BUILD_DIR)/$(BIN) -d $(TEST_OUTPUT) 
 	$(IMAGE_VIEWER) output.jpg
 clean:
-	rm -fr $(DEBUG_DIR) $(BUILD_DIR) output.*
+	rm -fr $(TEST_OUTPUT) $(DEBUG_DIR) $(BUILD_DIR) output.*
