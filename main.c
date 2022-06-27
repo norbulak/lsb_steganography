@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
             if(e_failure == read_and_validate_decode_args(argv, &decInfo))
                     ERROR("Invalid Arguments\n");
                     do_decoding(&decInfo);
-            //              close_decoding_file(&decInfo)
+            
             break;
         default:
             return -1;
